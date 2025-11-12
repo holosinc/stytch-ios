@@ -29,7 +29,7 @@ final class AuthInputViewModelTests: BaseTestCase {
 
     func testCreatesCorrectResetByEmailStartParams() {
         let config: StytchUIClient.Configuration = .init(
-            stytchClientConfiguration: .init(publicToken: "publicToken"),
+            stytchClientConfiguration: .init(publicToken: "publicToken", defaultSessionDuration: 5),
             products: [.passwords],
             passwordOptions: passwordConfig
         )
@@ -51,7 +51,7 @@ final class AuthInputViewModelTests: BaseTestCase {
 
     func testCreatesCorrectMagicLinkParams() {
         let config: StytchUIClient.Configuration = .init(
-            stytchClientConfiguration: .init(publicToken: "publicToken"),
+            stytchClientConfiguration: .init(publicToken: "publicToken", defaultSessionDuration: 5),
             products: [.passwords],
             passwordOptions: passwordConfig
         )
@@ -75,7 +75,7 @@ final class AuthInputViewModelTests: BaseTestCase {
     func testSendMagicLinkDoesNothingIfMagicLinksAreNotConfigured() async throws {
         let state = AuthInputState(
             config: .init(
-                stytchClientConfiguration: .init(publicToken: "publicToken"),
+                stytchClientConfiguration: .init(publicToken: "publicToken", defaultSessionDuration: 5),
                 products: []
             )
         )
@@ -91,7 +91,7 @@ final class AuthInputViewModelTests: BaseTestCase {
     func testSendMagicLinkCallsMagicLinksLoginOrCreateIfMagicLinksAreConfigured() async throws {
         let state = AuthInputState(
             config: .init(
-                stytchClientConfiguration: .init(publicToken: "publicToken"),
+                stytchClientConfiguration: .init(publicToken: "publicToken", defaultSessionDuration: 5),
                 products: [.emailMagicLinks],
                 magicLinkOptions: magicLinkConfig
             )
@@ -107,7 +107,7 @@ final class AuthInputViewModelTests: BaseTestCase {
     func testResetPasswordDoesNothingIfPasswordsAreNotConfigured() async throws {
         let state = AuthInputState(
             config: .init(
-                stytchClientConfiguration: .init(publicToken: "publicToken"),
+                stytchClientConfiguration: .init(publicToken: "publicToken", defaultSessionDuration: 5),
                 products: []
             )
         )
@@ -122,7 +122,7 @@ final class AuthInputViewModelTests: BaseTestCase {
     func testResetPasswordCallsPasswordsResetByEmailStartIfPasswordsAreConfigured() async throws {
         let state = AuthInputState(
             config: .init(
-                stytchClientConfiguration: .init(publicToken: "publicToken"),
+                stytchClientConfiguration: .init(publicToken: "publicToken", defaultSessionDuration: 5),
                 products: [.passwords],
                 passwordOptions: passwordConfig
             )
@@ -138,7 +138,7 @@ final class AuthInputViewModelTests: BaseTestCase {
     func testContinueWithPhoneCallsOTPLoginOrCreate() async throws {
         let state = AuthInputState(
             config: .init(
-                stytchClientConfiguration: .init(publicToken: "publicToken"),
+                stytchClientConfiguration: .init(publicToken: "publicToken", defaultSessionDuration: 5),
                 products: []
             )
         )
@@ -152,9 +152,9 @@ final class AuthInputViewModelTests: BaseTestCase {
 
     // getUserIntent is intentionally not tested since it's just fetching data from the API. But we can at least test the mapping of results -> intent
     func testUserTypeToPasswordIntentMappingWorksAsIntended() {
-        XCTAssert(UserSearchResponse(userType: .new).userType.passwordIntent == .signup)
-        XCTAssert(UserSearchResponse(userType: .password).userType.passwordIntent == .login)
-        XCTAssert(UserSearchResponse(userType: .passwordless).userType.passwordIntent == nil)
+        XCTAssert(StytchClient.UserManagement.UserSearchResponseData(userType: .new).userType.passwordIntent == .signup)
+        XCTAssert(StytchClient.UserManagement.UserSearchResponseData(userType: .password).userType.passwordIntent == .login)
+        XCTAssert(StytchClient.UserManagement.UserSearchResponseData(userType: .passwordless).userType.passwordIntent == nil)
     }
 }
 

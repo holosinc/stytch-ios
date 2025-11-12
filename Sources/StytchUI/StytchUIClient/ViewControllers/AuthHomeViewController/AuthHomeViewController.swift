@@ -60,7 +60,7 @@ final class AuthHomeViewController: BaseViewController<AuthHomeState, AuthHomeVi
             }
         }
 
-        if StytchClient.disableSdkWatermark == false {
+        if StytchClient.bootstrapData?.disableSdkWatermark == false {
             setupPoweredByStytchView()
         }
 
@@ -98,13 +98,13 @@ extension AuthHomeViewController {
     }
 
     @objc func authenticateBiometricsButtonTapped() {
-        StytchB2BUIClient.startLoading()
+        StytchUIClient.startLoading()
         Task {
             do {
-                StytchB2BUIClient.stopLoading()
+                StytchUIClient.stopLoading()
                 _ = try await StytchClient.biometrics.authenticate(parameters: .init())
             } catch {
-                StytchB2BUIClient.stopLoading()
+                StytchUIClient.stopLoading()
                 ErrorPublisher.publishError(error)
                 presentErrorAlert(error: error)
             }

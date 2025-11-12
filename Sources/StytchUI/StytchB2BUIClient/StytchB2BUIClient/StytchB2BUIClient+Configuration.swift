@@ -6,12 +6,11 @@ import UIKit
 
 public extension StytchB2BUIClient {
     struct Configuration: Codable {
-        public static let empty = Self(stytchClientConfiguration: .init(publicToken: ""), products: [], authFlowType: .discovery)
+        public static let empty = Self(stytchClientConfiguration: .init(publicToken: "", defaultSessionDuration: 5), products: [], authFlowType: .discovery)
 
         public let stytchClientConfiguration: StytchClientConfiguration
         public let products: [B2BProducts]
         public let authFlowType: AuthFlowType
-        public let sessionDurationMinutes: Minutes
         public let emailMagicLinksOptions: B2BEmailMagicLinksOptions?
         public let passwordOptions: B2BPasswordOptions?
         public let oauthProviders: [B2BOAuthProviderOptions]
@@ -78,13 +77,17 @@ public extension StytchB2BUIClient {
             }
         }
 
+        public var createOrganizationEnabled: Bool {
+            StytchB2BClient.bootstrapData?.createOrganizationEnabled ?? false
+        }
+
         // swiftlint:disable:next identifier_name
         public var allowsDirectCreateOrganizationIfNoneExist: Bool {
-            StytchB2BClient.createOrganizationEnabled && directCreateOrganizationForNoMembership
+            createOrganizationEnabled && directCreateOrganizationForNoMembership
         }
 
         public var allowsUserCreateOrganizations: Bool {
-            StytchB2BClient.createOrganizationEnabled && allowCreateOrganization
+            createOrganizationEnabled && allowCreateOrganization
         }
 
         /// - Parameters:
@@ -92,7 +95,6 @@ public extension StytchB2BUIClient {
         ///   - products: The products array allows you to specify the authentication methods that you would like to expose to your users.
         ///     The order of the products that you include here will also be the order in which they appear in the login form.
         ///   - authFlowType: The type of authentication flow you would like to begin with, either organization as specified by slug or discovery.
-        ///   - sessionDurationMinutes: The session duration you would like the authentication endpoints to use.
         ///   - emailMagicLinksOptions: The email magic link options to use if you have a custom configuration.
         ///   - passwordOptions: The password options to use if you have a custom configuration.
         ///   - oauthProviders: The array of OAuth providers. If you have .oauth in your products array you must specify the list of providers.
@@ -115,7 +117,6 @@ public extension StytchB2BUIClient {
             stytchClientConfiguration: StytchClientConfiguration,
             products: [B2BProducts],
             authFlowType: AuthFlowType,
-            sessionDurationMinutes: Minutes = .defaultSessionDuration,
             emailMagicLinksOptions: B2BEmailMagicLinksOptions? = nil,
             passwordOptions: B2BPasswordOptions? = nil,
             oauthProviders: [B2BOAuthProviderOptions] = [],
@@ -132,7 +133,6 @@ public extension StytchB2BUIClient {
             self.stytchClientConfiguration = stytchClientConfiguration
             self.products = products
             self.authFlowType = authFlowType
-            self.sessionDurationMinutes = sessionDurationMinutes
             self.emailMagicLinksOptions = emailMagicLinksOptions
             self.passwordOptions = passwordOptions
             self.oauthProviders = oauthProviders

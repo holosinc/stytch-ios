@@ -26,8 +26,7 @@ final class SessionManagerTestCase: BaseTestCase {
 
         Current.sessionManager.updateSession(
             sessionType: .user(.mock(userId: "i_am_user")),
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: try XCTUnwrap(URL(string: "https://url.com"))
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         _ = try await StytchClient.sessions.authenticate(parameters: parameters)
@@ -43,14 +42,46 @@ final class SessionManagerTestCase: BaseTestCase {
         XCTAssertNotNil(StytchClient.sessions.session)
     }
 
+    func testSessionsAttest() async throws {
+        networkInterceptor.responses { AuthenticateResponse.mock }
+        let parameters = StytchClient.Sessions.AttestParameters(
+            profileId: "profile_123",
+            token: "attestation_token",
+            sessionDurationMinutes: 30,
+            sessionJwt: "existing_jwt",
+            sessionToken: "existing_token"
+        )
+
+        Current.timer = { _, _, _ in .init() }
+
+        XCTAssertNil(StytchClient.sessions.session)
+
+        _ = try await StytchClient.sessions.attest(parameters: parameters)
+
+        try XCTAssertRequest(
+            networkInterceptor.requests[0],
+            urlString: "https://api.stytch.com/sdk/v1/sessions/attest",
+            method: .post([
+                "profile_id": "profile_123",
+                "token": "attestation_token",
+                "session_duration_minutes": 30,
+                "session_jwt": "existing_jwt",
+                "session_token": "existing_token",
+            ])
+        )
+
+        XCTAssertEqual(StytchClient.sessions.sessionJwt, .jwt("jwt_for_me"))
+        XCTAssertEqual(StytchClient.sessions.sessionToken, .opaque("hello_session"))
+        XCTAssertNotNil(StytchClient.sessions.session)
+    }
+
     func testSessionsRevoke() async throws {
         networkInterceptor.responses { BasicResponse(requestId: "request_id", statusCode: 200) }
         Current.timer = { _, _, _ in .init() }
 
         Current.sessionManager.updateSession(
             sessionType: .user(.mock(userId: "i_am_user")),
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: try XCTUnwrap(URL(string: "https://url.com"))
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         XCTAssertEqual(StytchClient.sessions.sessionToken, .opaque("opaque_all_day"))
@@ -73,8 +104,7 @@ final class SessionManagerTestCase: BaseTestCase {
 
         Current.sessionManager.updateSession(
             sessionType: .user(.mock(userId: "i_am_user")),
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: try XCTUnwrap(URL(string: "https://url.com"))
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         XCTAssertEqual(StytchClient.sessions.sessionToken, .opaque("opaque_all_day"))
@@ -122,8 +152,7 @@ final class SessionManagerTestCase: BaseTestCase {
         // Given we call update session with valid member session and tokens
         Current.sessionManager.updateSession(
             sessionType: .member(.mock),
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: URL(string: "https://url.com")
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         // And it correctly applies the values
@@ -161,8 +190,7 @@ final class SessionManagerTestCase: BaseTestCase {
         Current.timer = { _, _, _ in .init() }
         Current.sessionManager.updateSession(
             sessionType: .user(.mock(userId: "i_am_user")),
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: try XCTUnwrap(URL(string: "https://url.com"))
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         wait(for: [expectation], timeout: 1.0)
@@ -185,8 +213,7 @@ final class SessionManagerTestCase: BaseTestCase {
         Current.timer = { _, _, _ in .init() }
         Current.sessionManager.updateSession(
             sessionType: nil,
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: try XCTUnwrap(URL(string: "https://url.com"))
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         wait(for: [expectation], timeout: 1.0)
@@ -197,8 +224,7 @@ final class SessionManagerTestCase: BaseTestCase {
         Current.timer = { _, _, _ in .init() }
         Current.sessionManager.updateSession(
             sessionType: .user(.mockWithExpiredSession(userId: "i_am_user")),
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: try XCTUnwrap(URL(string: "https://url.com"))
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         XCTAssertNil(StytchClient.sessions.session)
@@ -215,8 +241,7 @@ final class SessionManagerTestCase: BaseTestCase {
 
         Current.sessionManager.updateSession(
             sessionType: .user(.mock(userId: "i_am_user")),
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: try XCTUnwrap(URL(string: "https://url.com"))
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         XCTAssertNotNil(Current.sessionManager.sessionToken)
@@ -246,8 +271,7 @@ final class SessionManagerTestCase: BaseTestCase {
 
         Current.sessionManager.updateSession(
             sessionType: .user(.mock(userId: "i_am_user")),
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: try XCTUnwrap(URL(string: "https://url.com"))
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         XCTAssertNotNil(Current.sessionManager.sessionToken)

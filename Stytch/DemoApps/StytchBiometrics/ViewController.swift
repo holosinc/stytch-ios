@@ -15,7 +15,9 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        StytchClient.configure(configuration: .init(publicToken: "public-token-test-..."))
+
+        let stytchClientConfiguration = StytchClientConfiguration(publicToken: "public-token-test-...", defaultSessionDuration: 5)
+        StytchClient.configure(configuration: stytchClientConfiguration)
 
         StytchClient.sessions.onSessionChange
             .receive(on: DispatchQueue.main)
@@ -33,9 +35,16 @@ class ViewController: UIViewController {
     @IBAction func sendAndAuthenticateOTPTapped(_: Any) {
         Task {
             do {
-                guard let phoneNumber = try await presentTextFieldAlertWithTitle(alertTitle: "Enter Your Phone Number In The Format xxxxxxxxxx", keyboardType: .numberPad) else {
+                // so you can hard code a number if needed
+                var phoneNumber: String?
+                if phoneNumber?.isEmpty == true {
+                    phoneNumber = try await presentTextFieldAlertWithTitle(alertTitle: "Enter Your Phone Number In The Format xxxxxxxxxx", keyboardType: .numberPad)
+                }
+
+                guard let phoneNumber else {
                     throw TextFieldAlertError.emptyString
                 }
+
                 let loginOrCreateResponse = try await StytchClient.otps.loginOrCreate(parameters: .init(deliveryMethod: .sms(phoneNumber: "+1\(phoneNumber)", enableAutofill: false)))
 
                 guard let code = try await presentTextFieldAlertWithTitle(alertTitle: "Enter The OTP Code", keyboardType: .numberPad) else {
@@ -56,7 +65,8 @@ class ViewController: UIViewController {
                 _ = try await StytchClient.biometrics.register(parameters:
                     .init(
                         identifier: "foo@stytch.com",
-                        accessPolicy: .deviceOwnerAuthentication
+                        accessPolicy: .deviceOwnerAuthentication,
+                        shouldEvaluatePolicyOnRegister: true
                     )
                 )
                 presentAlertWithTitle(alertTitle: "Register Biometrics Success!")

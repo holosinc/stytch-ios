@@ -5,10 +5,6 @@ import AppKit
 import UIKit
 #endif
 
-#if !os(tvOS) && !os(watchOS)
-import LocalAuthentication
-#endif
-
 // swiftlint:disable identifier_name
 #if DEBUG
 var Current: Environment = .init()
@@ -67,8 +63,6 @@ struct Environment {
 
     var localStorage: LocalStorage = .init()
 
-    var cookieClient: CookieClient = .live
-
     var keychainClient: KeychainClient = KeychainClientImplementation.shared
 
     var userDefaultsClient: EncryptedUserDefaultsClient = EncryptedUserDefaultsClientImplementation.shared
@@ -116,10 +110,6 @@ struct Environment {
     #if canImport(StytchDFP)
     var dfpClient: DFPProvider = DFPClient()
     var captcha: CaptchaProvider = CaptchaClient()
-    #endif
-
-    #if !os(tvOS) && !os(watchOS)
-    var localAuthenticationContext: LAContextEvaluating = LAContext()
     #endif
 
     var pkcePairManager: PKCEPairManager {

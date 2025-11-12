@@ -16,10 +16,19 @@ final class KeychainClientImplementation: KeychainClient {
         DispatchQueue.getSpecific(key: queueKey) != nil
     }
 
+    #if !os(tvOS) && !os(watchOS)
+    // Shared reusable private context for the keychain client,
+    // always configured with interactionNotAllowed = true
+    private let contextWithoutUI = LAContext()
+    #endif
+
     private init() {
         queue = DispatchQueue(label: "StytchKeychainClientQueue")
         queue.setSpecific(key: queueKey, value: ())
         loadEncryptionKey()
+        #if !os(tvOS) && !os(watchOS)
+        contextWithoutUI.interactionNotAllowed = true
+        #endif
     }
 
     func loadEncryptionKey() {
@@ -56,8 +65,8 @@ final class KeychainClientImplementation: KeychainClient {
         try safelyEnqueue {
             var result: CFTypeRef?
             var query = item.getQuery
-            #if !os(tvOS)
-            try updateQueryWithLAContext(&query)
+            #if !os(tvOS) && !os(watchOS)
+            query[kSecUseAuthenticationContext] = LocalAuthenticationContextManager.laContext
             #endif
             var status: OSStatus?
             if item.kind == .privateKey {
@@ -134,9 +143,8 @@ final class KeychainClientImplementation: KeychainClient {
         let exists = try? safelyEnqueue {
             var result: CFTypeRef?
             var query = item.getQuery
-            #if !os(tvOS)
-            let context = try updateQueryWithLAContext(&query)
-            context.interactionNotAllowed = true
+            #if !os(tvOS) && !os(watchOS)
+            query[kSecUseAuthenticationContext] = contextWithoutUI
             #endif
             let status = SecItemCopyMatching(query as CFDictionary, &result)
             return [errSecSuccess, errSecInteractionNotAllowed].contains(status)
@@ -148,8 +156,8 @@ final class KeychainClientImplementation: KeychainClient {
         try safelyEnqueue {
             let status: OSStatus
             var query = item.baseQuery
-            #if !os(tvOS)
-            _ = try updateQueryWithLAContext(&query)
+            #if !os(tvOS) && !os(watchOS)
+            query[kSecUseAuthenticationContext] = LocalAuthenticationContextManager.laContext
             #endif
             if valueExistsForItem(item: item) {
                 let queryDict = query as CFDictionary
@@ -203,25 +211,4 @@ final class KeychainClientImplementation: KeychainClient {
             }
         }
     }
-}
-
-extension KeychainClientImplementation {
-    #if !os(tvOS)
-    @discardableResult
-    func updateQueryWithLAContext(_ query: inout [CFString: Any]) throws -> LAContext {
-        try safelyEnqueue {
-            let context = LAContext()
-            #if !os(watchOS)
-            context.localizedReason = NSLocalizedString(
-                "keychain_client.la_context_reason",
-                value: "Authenticate with biometrics",
-                comment: "The user-presented reason for biometric authentication prompts"
-            )
-            #endif
-            // This could potentially cause prompting for secured items, so we'll pass in a reusable authentication context to minimize prompting
-            query[kSecUseAuthenticationContext] = context
-            return context
-        }
-    }
-    #endif
 }

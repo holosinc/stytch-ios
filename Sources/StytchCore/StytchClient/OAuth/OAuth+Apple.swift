@@ -18,6 +18,7 @@ public extension StytchClient.OAuth {
         /// Initiates the OAuth flow by using the included parameters to start a Sign In With Apple request. If the authentication is successful this method will return a new session object.
         public func start(parameters: StartParameters) async throws -> AuthenticateResponse {
             let rawNonce = try cryptoClient.dataWithRandomBytesOfCount(32).toHexString()
+
             let authenticateResult = try await appleOAuthClient.authenticate(
                 configureController: { controller in
                     #if !os(watchOS)
@@ -26,6 +27,7 @@ public extension StytchClient.OAuth {
                 },
                 nonce: cryptoClient.sha256(Data(rawNonce.utf8)).base64EncodedString()
             )
+
             let authenticateResponse: AuthenticateResponse = try await router.post(
                 to: .authenticate,
                 parameters: AuthenticateParameters(
@@ -34,6 +36,7 @@ public extension StytchClient.OAuth {
                     sessionDurationMinutes: parameters.sessionDurationMinutes
                 )
             )
+
             if authenticateResult.name != nil {
                 let _: BasicResponse = try await userRouter.put(
                     to: .index,
@@ -42,6 +45,7 @@ public extension StytchClient.OAuth {
                     )
                 )
             }
+
             _ = try await EventsClient.logEvent(
                 parameters: .init(
                     eventName: "apple_oauth_name_found",
@@ -91,16 +95,18 @@ public extension StytchClient.OAuth.Apple {
         ///   - sessionDurationMinutes: The duration, in minutes, of the requested session. Defaults to 5 minutes.
         ///   - presentationContextProvider: This native Apple authorization type allows you to present Sign In With Apple in the window of your choosing.
         public init(
-            sessionDurationMinutes: Minutes = .defaultSessionDuration,
+            sessionDurationMinutes: Minutes = StytchClient.defaultSessionDuration,
             presentationContextProvider: ASAuthorizationControllerPresentationContextProviding? = nil
         ) {
             self.sessionDurationMinutes = sessionDurationMinutes
             self.presentationContextProvider = presentationContextProvider
         }
+
         #else
+
         /// - Parameters:
         ///   - sessionDurationMinutes: The duration, in minutes, of the requested session. Defaults to 5 minutes.
-        public init(sessionDurationMinutes: Minutes = .defaultSessionDuration) {
+        public init(sessionDurationMinutes: Minutes = StytchClient.defaultSessionDuration) {
             self.sessionDurationMinutes = sessionDurationMinutes
         }
         #endif

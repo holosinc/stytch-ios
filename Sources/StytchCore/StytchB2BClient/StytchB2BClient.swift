@@ -3,6 +3,9 @@ import Foundation
 #if os(iOS)
 import UIKit
 #endif
+
+// swiftlint:disable prefer_self_in_static_references
+
 /**
  The entrypoint for all Stytch B2B-related interaction.
 
@@ -11,45 +14,15 @@ import UIKit
  **Async Options**: Async function calls for Stytch products are available via various
  mechanisms (Async/Await, Combine, callbacks) so you can use whatever best suits your needs.
  */
-public struct StytchB2BClient: StytchClientType {
-    static var instance: StytchB2BClient = .init()
+public struct StytchB2BClient: StytchClientCommonInternal {
+    internal static var shared = StytchB2BClient()
 
     static let router: NetworkingRouter<BaseRoute> = .init {
-        instance.configuration
-    }
-
-    /**
-     Signals that the SDK is fully initialized and ready for use.
-     This is sent after two parallel tasks complete:
-     1. Attempting to call sessions.authenticate (if there's a session token cached on the device).
-     2. Bootstrapping configuration, including DFP and captcha setup.
-     */
-    public static var isInitialized: AnyPublisher<Bool, Never> {
-        StartupClient.isInitialized
+        stytchClientConfiguration
     }
 
     public static var lastAuthMethodUsed: B2BAuthMethod {
         Current.sessionManager.b2bLastAuthMethodUsed
-    }
-
-    public static var createOrganizationEnabled: Bool {
-        Current.localStorage.bootstrapData?.createOrganizationEnabled ?? false
-    }
-
-    public static var disableSdkWatermark: Bool {
-        Current.localStorage.bootstrapData?.disableSdkWatermark ?? true
-    }
-
-    public static var passwordConfig: PasswordConfig? {
-        Current.localStorage.bootstrapData?.passwordConfig
-    }
-
-    public static var bootstrapData: BootstrapResponseData? {
-        Current.localStorage.bootstrapData
-    }
-
-    public static var configuration: StytchClientConfiguration? {
-        instance.configuration
     }
 
     public static var clientType: ClientType {
@@ -62,22 +35,24 @@ public struct StytchB2BClient: StytchClientType {
        - configuration: A flexible and extensible object requiring at least a public token, with optional additional settings.
      */
     public static func configure(configuration: StytchClientConfiguration) {
-        instance.configure(newConfiguration: configuration)
+        shared.configure(newConfiguration: configuration)
     }
 
     // swiftlint:disable:next orphaned_doc_comment
     ///  A helper function for parsing out the Stytch token types and values from a given deeplink
     // swiftlint:disable:next large_tuple
     public static func tokenValues(for url: URL) throws -> (DeeplinkTokenType, DeeplinkRedirectType, String)? {
-        guard let (type, redirectTypeString, token) = try _tokenValues(for: url) else { return nil }
-        guard let tokenType = DeeplinkTokenType(rawValue: type) else { throw StytchSDKError.deeplinkUnknownTokenType }
-        let redirectType = DeeplinkRedirectType(redirectTypeString)
-        return (tokenType, redirectType, token)
-    }
+        guard let (type, redirectTypeString, token) = try _tokenValues(for: url) else {
+            return nil
+        }
 
-    /// Retrieve the most recently created PKCE code pair from the device, if available
-    public static func getPKCECodePair() -> PKCECodePair? {
-        Self.instance.pkcePairManager.getPKCECodePair()
+        guard let tokenType = DeeplinkTokenType(rawValue: type) else {
+            throw StytchSDKError.deeplinkUnknownTokenType
+        }
+
+        let redirectType = DeeplinkRedirectType(redirectTypeString)
+
+        return (tokenType, redirectType, token)
     }
 }
 
@@ -131,7 +106,7 @@ public extension StytchB2BClient {
     ///  - Parameters:
     ///    - url: A `URL` passed to your application as a deeplink.
     ///    - sessionDurationMinutes: The duration, in minutes, of the requested session. Defaults to 5 minutes.
-    static func handle(url: URL, sessionDurationMinutes: Minutes) async throws -> DeeplinkHandledStatus<DeeplinkResponse, DeeplinkTokenType, DeeplinkRedirectType> {
+    static func handle(url: URL, sessionDurationMinutes: Minutes = StytchB2BClient.defaultSessionDuration) async throws -> DeeplinkHandledStatus<DeeplinkResponse, DeeplinkTokenType, DeeplinkRedirectType> {
         guard let (tokenType, redirectType, token) = try tokenValues(for: url) else {
             Task {
                 try? await EventsClient.logEvent(parameters: .init(eventName: "deeplink_handled_failure", details: ["token_type": "UNKNOWN"]))

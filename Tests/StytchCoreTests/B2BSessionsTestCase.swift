@@ -18,8 +18,7 @@ final class B2BSessionsTestCase: BaseTestCase {
 
         Current.sessionManager.updateSession(
             sessionType: .member(.mock),
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: try XCTUnwrap(URL(string: "https://url.com"))
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         _ = try await StytchB2BClient.sessions.authenticate(parameters: parameters)
@@ -35,14 +34,47 @@ final class B2BSessionsTestCase: BaseTestCase {
         XCTAssertNotNil(StytchB2BClient.sessions.memberSession)
     }
 
+    func testSessionsAttest() async throws {
+        networkInterceptor.responses { B2BAuthenticateResponse.mock }
+
+        let parameters = StytchB2BClient.Sessions.AttestParameters(
+            profileId: "profile_123",
+            token: "attestation_token",
+            organizationId: "org_123",
+            sessionJwt: "existing_jwt",
+            sessionToken: "existing_token"
+        )
+
+        Current.timer = { _, _, _ in .init() }
+
+        XCTAssertNil(StytchB2BClient.sessions.memberSession)
+
+        _ = try await StytchB2BClient.sessions.attest(parameters: parameters)
+
+        try XCTAssertRequest(
+            networkInterceptor.requests[0],
+            urlString: "https://api.stytch.com/sdk/v1/b2b/sessions/attest",
+            method: .post([
+                "profile_id": "profile_123",
+                "token": "attestation_token",
+                "organization_id": "org_123",
+                "session_jwt": "existing_jwt",
+                "session_token": "existing_token",
+            ])
+        )
+
+        XCTAssertEqual(StytchB2BClient.sessions.sessionJwt, .jwt("i'mvalidjson"))
+        XCTAssertEqual(StytchB2BClient.sessions.sessionToken, .opaque("xyzasdf"))
+        XCTAssertNotNil(StytchB2BClient.sessions.memberSession)
+    }
+
     func testSessionsRevoke() async throws {
         networkInterceptor.responses { BasicResponse(requestId: "request_id", statusCode: 200) }
         Current.timer = { _, _, _ in .init() }
 
         Current.sessionManager.updateSession(
             sessionType: .member(.mock),
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: try XCTUnwrap(URL(string: "https://url.com"))
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         XCTAssertEqual(StytchB2BClient.sessions.sessionToken, .opaque("opaque_all_day"))
@@ -112,8 +144,7 @@ final class B2BSessionsTestCase: BaseTestCase {
         Current.timer = { _, _, _ in .init() }
         Current.sessionManager.updateSession(
             sessionType: .member(.mock),
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: try XCTUnwrap(URL(string: "https://url.com"))
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         wait(for: [expectation], timeout: 1.0)
@@ -136,8 +167,7 @@ final class B2BSessionsTestCase: BaseTestCase {
         Current.timer = { _, _, _ in .init() }
         Current.sessionManager.updateSession(
             sessionType: nil,
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: try XCTUnwrap(URL(string: "https://url.com"))
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         wait(for: [expectation], timeout: 1.0)
@@ -148,8 +178,7 @@ final class B2BSessionsTestCase: BaseTestCase {
         Current.timer = { _, _, _ in .init() }
         Current.sessionManager.updateSession(
             sessionType: .member(.mockWithExpiredMemberSession),
-            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day")),
-            hostUrl: try XCTUnwrap(URL(string: "https://url.com"))
+            tokens: SessionTokens(jwt: .jwt("i'm_jwt"), opaque: .opaque("opaque_all_day"))
         )
 
         XCTAssertNil(StytchB2BClient.sessions.memberSession)

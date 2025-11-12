@@ -14,7 +14,6 @@ class BaseTestCase: XCTestCase {
 
         Current.networkingClient = networkInterceptor
         Current.sessionsPollingClient = .failing
-        Current.cookieClient = .mock()
         Current.keychainClient = KeychainClientMock()
         Current.userDefaultsClient = EncryptedUserDefaultsClientMock()
         Current.cryptoClient = .live
@@ -40,6 +39,7 @@ class BaseTestCase: XCTestCase {
 
         StytchClient.configure(configuration: .init(
             publicToken: "xyz",
+            defaultSessionDuration: 5,
             hostUrl: try XCTUnwrap(URL(string: "https://myapp.com"))
         ))
 
@@ -47,10 +47,6 @@ class BaseTestCase: XCTestCase {
 
         Current.sessionManager.consumerLastAuthMethodUsed = StytchClient.ConsumerAuthMethod.unknown
         Current.sessionManager.b2bLastAuthMethodUsed = StytchB2BClient.B2BAuthMethod.unknown
-
-        #if !os(tvOS) && !os(watchOS)
-        Current.localAuthenticationContext = MockLocalAuthenticationContext()
-        #endif
     }
 }
 

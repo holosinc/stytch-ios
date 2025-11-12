@@ -43,7 +43,7 @@ final class AuthInputViewController: BaseViewController<AuthInputState, AuthInpu
     private lazy var inputs: [Input] = {
         var inputs: [Input] = []
 
-        if let otpMethods = viewModel.state.config.otpOptions?.methods {
+        if viewModel.state.config.supportsOTP == true, let otpMethods = viewModel.state.config.otpOptions?.methods {
             for method in otpMethods {
                 switch method {
                 case .sms:
@@ -158,7 +158,7 @@ final class AuthInputViewController: BaseViewController<AuthInputState, AuthInpu
     private func setupPhoneNumberInput(input: PhoneNumberInput) {
         input.onButtonPressed = { [weak self] _ in
             guard let self else { return }
-            let countryPickerViewController = CountryCodePickerViewController(phoneNumberKit: input.phoneNumberKit, options: .init())
+            let countryPickerViewController = CountryCodePickerViewController(utility: input.phoneNumberUtility, options: .init())
             countryPickerViewController.delegate = input
             let navigationController = UINavigationController(rootViewController: countryPickerViewController)
             present(navigationController, animated: true)
