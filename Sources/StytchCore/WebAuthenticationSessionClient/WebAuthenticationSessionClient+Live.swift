@@ -35,6 +35,14 @@ extension WebAuthenticationSessionClient {
             #if !os(tvOS)
             session.presentationContextProvider = parameters.presentationContextProvider
             #endif
+            // Holos: run every OAuth flow in a private cookie jar. Stytch's OAuth state is a
+            // 10-minute, single-use `oauth_state` cookie on the project's login domain, and in
+            // the default (shared-with-Safari) mode that cookie is exposed to Safari's tracking
+            // protection, to a dashboard login running in Safari, and to replayed callbacks,
+            // any of which surfaces as `oauth_invalid_state` from the callback. An ephemeral
+            // session isolates the cookie for the life of the flow and also skips the
+            // "wants to use <domain> to sign in" system prompt.
+            session.prefersEphemeralWebBrowserSession = true
             session.start()
         }
     }
